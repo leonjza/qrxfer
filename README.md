@@ -49,3 +49,6 @@ The below asciicast shows how to receive a file using `qrxfer.py`.
 The command used in this case was `python qrxfer.py receive -d incoming`:
 
 [![asciicast](https://asciinema.org/a/3f2vfou57yhib3l478pwow84n.png)](https://asciinema.org/a/3f2vfou57yhib3l478pwow84n)
+
+## contact
+[@leonjza](https://twitter.com/leonjza)
