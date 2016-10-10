@@ -22,15 +22,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import pyqrcode
+import base64
 import hashlib
 import time
+
+import click
 import cv2
 import cv2.cv as cv
 import numpy
+import pyqrcode
 import zbar
-import click
-import base64
 
 MESSAGE_BEGIN = '-----BEGIN XFER MESSAGE-----'
 MESSAGE_END = '-----END XFER MESSAGE-----'
@@ -108,7 +109,11 @@ class QrReceive(object):
         # self.capture = cv.CreateCameraCapture(-1)
         self.capture = cv.CaptureFromCAM(0)
 
-    def __del__(self):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # TODO: Respond based on the exc_val
         self.capture = None
 
     def process_frames(self):
@@ -225,15 +230,15 @@ def receive(destination):
 
         try:
             click.secho('[*] Starting Video Capture', fg='green')
-            qr = QrReceive()
-            qr.process_frames()
+
+            with QrReceive() as qr:
+                qr.process_frames()
 
             destination.write(qr.data)
             click.secho('Wrote received data to: {0}\n\n'.format(destination.name))
 
         except Exception as e:
             click.secho('[*] An exception occured: {0}'.format(e.message), fg='red')
-            qr.__del__()
 
         time.sleep(2)
 
