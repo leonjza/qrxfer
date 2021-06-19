@@ -2,6 +2,7 @@
 
 # The MIT License (MIT)
 #
+# Copyright (c) 2021 Konstantin Goretzki
 # Copyright (c) 2016 Leon Jacobs
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -51,7 +52,7 @@ class QrSend(object):
         n = size if size else self.size
 
         n = max(1, n)
-        return [l[i:i + n] for i in range(0, len(l), n)]
+        if l: return [l[i:i + n] for i in range(0, len(l), n)]
 
     def _headers(self):
         return [
