@@ -15,16 +15,18 @@ The second was recording the emitter with my phone, and then placing my phone in
 
 ## installation
 I used a [Kali Rolling](https://www.kali.org/downloads/) virtual machine with my laptops builtin Webcam added to the VMs hardware to build and test this.  
-Installation on Kali is relatively simple. QRXfer uses [OpenCV](http://opencv.org/) python bindings and [Zbar](http://zbar.sourceforge.net/) python bindings for most of the magic.
+Installation on Kali is relatively simple. QRXfer uses [OpenCV](http://opencv.org/) python bindings and [pyzbar](https://github.com/NaturalHistoryMuseum/pyzbar/) as python bindings for `Zbar` for most of the magic.
 
   1. Install `click` with `pip install click`
-  2. Install `opencv` with `apt-get install python-opencv`
-  3. Install `zbar` with `apt-get install python-zbar`
-  4. `git clone https://github.com/leonjza/qrxfer.git` or just grab a copy of the `qrxfer.py` script.
+  2. Install `pyqrcode` with `pip install pyqrcode`
+  3. Install `libzbar0` (zbar shared lib) with `apt-get install libzbar0`
+  4. Install `opencv` with `apt-get install python-opencv`
+  5. Install `pyzbar` with `pip install pyzbar`
+  6. `git clone https://github.com/leonjza/qrxfer.git` or just grab a copy of the `qrxfer.py` script.
 
 ## usage
 ```
-# python qrxfer.py --help
+# python3 qrxfer.py --help
 Usage: qrxfer.py [OPTIONS] COMMAND [ARGS]...
 
 Options:
