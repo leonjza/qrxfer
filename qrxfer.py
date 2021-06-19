@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # The MIT License (MIT)
 #
@@ -29,10 +29,8 @@ import time
 
 import click
 import cv2
-import cv2.cv as cv
-import numpy
 import pyqrcode
-import zbar
+from pyzbar.pyzbar import decode
 
 MESSAGE_BEGIN = '-----BEGIN XFER MESSAGE-----'
 MESSAGE_END = '-----END XFER MESSAGE-----'
@@ -59,7 +57,7 @@ class QrSend(object):
             MESSAGE_BEGIN,
             HEADER_BEGIN,
             'LEN:{0}'.format(len(self.data)),
-            'HASH:{0}'.format(hashlib.sha1(''.join(self.data)).hexdigest()),
+            'HASH:{0}'.format(hashlib.sha1(b''.join(self.data)).hexdigest()),
             HEADER_END
         ]
 
@@ -82,7 +80,7 @@ class QrSend(object):
             self._printqr(payload)
             counter += 1
 
-            print '{0}/{1}'.format(counter, len(self.data))
+            print('{0}/{1}'.format(counter, len(self.data)))
             time.sleep(0.2)
 
         self._printqr(MESSAGE_END)
@@ -104,11 +102,8 @@ class QrReceive(object):
     received_iterations = []
 
     def __init__(self):
-        cv.NamedWindow(self.window_name, cv.CV_WINDOW_AUTOSIZE)
-
-        # self.capture = cv.CaptureFromCAM(camera_index) #for some reason, this doesn't work
-        # self.capture = cv.CreateCameraCapture(-1)
-        self.capture = cv.CaptureFromCAM(0)
+        cv2.namedWindow(self.window_name)
+        self.capture = cv2.VideoCapture(0)
 
     def __enter__(self):
         return self
@@ -120,49 +115,45 @@ class QrReceive(object):
     def process_frames(self):
 
         while True:
-            frame = cv.QueryFrame(self.capture)
+            result, frame = self.capture.read()
+            height, width, channels = frame.shape
 
-            aframe = numpy.asarray(frame[:, :])
-            g = cv.fromarray(aframe)
-            g = numpy.asarray(g)
-
-            imgray = cv2.cvtColor(g, cv2.COLOR_BGR2GRAY)
-
-            raw = str(imgray.data)
-            scanner = zbar.ImageScanner()
-            scanner.parse_config('enable')
-
-            imagezbar = zbar.Image(frame.width, frame.height, 'Y800', raw)
-            scanner.scan(imagezbar)
+            imgray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            img = decode((imgray.tobytes(), width, height))
 
             # Process the frames
-            for symbol in imagezbar:
+            for symbol in img:
+                print(symbol.data)
+
                 if not self.process_symbol(symbol):
                     return
 
             # Update the preview window
-            cv2.imshow(self.window_name, aframe)
-            cv.WaitKey(5)
+            cv2.imshow(self.window_name, frame)
+            cv2.waitKey(5)
 
     def process_symbol(self, symbol):
-        if symbol.data == MESSAGE_BEGIN:
+
+        content = symbol.data.decode("utf_8")
+
+        if content == MESSAGE_BEGIN:
             self.start = True
             return True
 
-        if symbol.data == HEADER_BEGIN:
+        if content == HEADER_BEGIN:
             return True
 
-        if 'LEN' in symbol.data:
-            self.length = symbol.data.split(':')[1]
+        if 'LEN' in content:
+            self.length = content.split(':')[1]
             click.secho('[*] The message will come in {0} parts'.format(self.length), fg='green')
             return True
 
-        if 'HASH' in symbol.data:
-            self.hash = symbol.data.split(':')[1]
+        if 'HASH' in content:
+            self.hash = content.split(':')[1]
             click.secho('[*] The message has hash: {0}'.format(self.hash), fg='green')
             return True
 
-        if symbol.data == HEADER_END:
+        if content == HEADER_END:
             if not self.length or not self.hash:
                 raise Exception('Header read failed. No lengh or hash data.')
             return True
@@ -171,19 +162,20 @@ class QrReceive(object):
             raise Exception('Received message without proper Message Start Header')
 
         # Cleanup On Message End
-        if symbol.data == MESSAGE_END:
+        if content == MESSAGE_END:
+
             # integrity check!
-            final_hash = hashlib.sha1(''.join(self.data)).hexdigest()
+            final_hash = hashlib.sha1(self.data.encode("utf_8")).hexdigest()
 
             if final_hash != self.hash:
                 click.secho('[*] Warning! Hashcheck failed!', fg='red')
                 click.secho('[*] Expected: {0}, got: {1}'.format(self.hash, final_hash), fg='red', bold=True)
             else:
                 click.secho('[*] Data checksum check passed.', fg='green')
-            cv.DestroyWindow(self.window_name)
+            cv2.destroyWindow(self.window_name)
             return False
 
-        iteration, data = int(symbol.data.split(':')[0]), base64.b64decode(symbol.data.split(':')[1])
+        iteration, data = int(content.split(':')[0]), base64.b64decode(content.split(':')[1][2:-1]).decode("utf_8")
 
         if iteration in self.received_iterations:
             return True
@@ -235,11 +227,11 @@ def receive(destination):
             with QrReceive() as qr:
                 qr.process_frames()
 
-            destination.write(qr.data)
+            destination.write(qr.data.encode('utf_8'))
             click.secho('Wrote received data to: {0}\n\n'.format(destination.name))
 
         except Exception as e:
-            click.secho('[*] An exception occured: {0}'.format(e.message), fg='red')
+            click.secho('[*] An exception occured: {0}'.format(e), fg='red')
 
         time.sleep(2)
 
